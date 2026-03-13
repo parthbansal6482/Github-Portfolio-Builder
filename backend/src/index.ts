@@ -9,6 +9,7 @@ import portfolioRoutes from './routes/portfolio.js';
 import viewsRoutes from './routes/views.js';
 import dashboardRoutes from './routes/dashboard.js';
 import profileRoutes from './routes/profile.js';
+import enrichedRoutes from './routes/enriched.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -37,6 +38,7 @@ app.get('/health', (_req, res) => {
 
 // API routes
 app.use('/api/github', githubRoutes);
+app.use('/api/github', enrichedRoutes); // Enriched insights routes (POST /fetch-enriched, GET /enriched/:username)
 app.use('/api/generate', generateRoutes);
 app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/views', viewsRoutes);
