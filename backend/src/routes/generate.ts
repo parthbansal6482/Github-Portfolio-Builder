@@ -28,10 +28,10 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
       return;
     }
 
-    // 1. Fetch existing GitHub data from Supabase
+    // 1. Fetch existing GitHub data (and enriched insights if available) from Supabase
     const { data: portfolio, error: fetchError } = await supabase
       .from('portfolios')
-      .select('id, github_data')
+      .select('id, github_data, enriched_github_data')
       .eq('user_id', user.id)
       .single();
 
@@ -52,7 +52,12 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
 
     // 2. Call LLM generators
     try {
-      finalCopy = await generatePortfolioCopy({ githubData, preferences });
+      finalCopy = await generatePortfolioCopy({
+        githubData,
+        preferences,
+        // enrichedData may be null if enrichment hasn't been run yet — generators fall back gracefully
+        enrichedData: portfolio.enriched_github_data ?? null,
+      });
     } catch (llmError) {
       console.error('LLM Generation failed, building fallback copy:', llmError);
       const reason = llmError instanceof Error ? llmError.message : 'Unknown LLM error';
