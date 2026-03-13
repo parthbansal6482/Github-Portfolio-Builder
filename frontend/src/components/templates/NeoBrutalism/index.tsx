@@ -10,9 +10,7 @@ import FooterSection from './FooterSection';
 export default function NeoBrutalismTemplate({ portfolio, username }: TemplateProps) {
     const { githubData, preferences, generatedCopy } = portfolio;
 
-    const copy = generatedCopy && !('fallbackReason' in generatedCopy) && !generatedCopy.isFallback
-        ? generatedCopy
-        : generatedCopy;
+    const copy = generatedCopy as any;
 
     if (!copy) {
         return (

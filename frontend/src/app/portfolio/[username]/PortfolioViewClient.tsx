@@ -8,6 +8,10 @@ import { incrementViewCount } from '@/lib/api';
 import DefaultTemplate from '@/components/templates/DefaultTemplate';
 import NeoBrutalismTemplate from '@/components/templates/NeoBrutalism';
 
+import GlassmorphismTemplate from '@/components/templates/Glassmorphism';
+
+import RetroRpgTemplate from '@/components/templates/RetroRpg';
+
 interface ViewProps {
   portfolio: Portfolio;
   username: string;
@@ -35,6 +39,10 @@ export default function PortfolioViewClient({ portfolio, username }: ViewProps) 
   switch (templateId) {
     case 'neo-brutalism':
       return <NeoBrutalismTemplate portfolio={portfolio} username={username} />;
+    case 'glassmorphism':
+      return <GlassmorphismTemplate portfolio={portfolio} username={username} />;
+    case 'retro-rpg':
+      return <RetroRpgTemplate portfolio={portfolio} username={username} />;
     default:
       return <DefaultTemplate portfolio={portfolio} username={username} />;
   }
