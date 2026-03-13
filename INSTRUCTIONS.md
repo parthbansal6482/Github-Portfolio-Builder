@@ -6,7 +6,7 @@ Welcome to GitFolio! This is a monorepo containing a Next.js (Frontend) and an E
 - Node.js (v18+)
 - Postgres Database (Supabase recommended)
 - GitHub OAuth App (for authentication)
-- Anthropic API Key (for the LLM copy generation)
+- Anthropic or Groq API Key (for the LLM copy generation)
 
 ## 2. Environment Variables
 
@@ -20,8 +20,10 @@ Create a file at `backend/.env` with the following variables:
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
-# Required: Anthropic API Key for generating text
+# Required: LLM Configuration
+LLM_PROVIDER=groq # 'anthropic' or 'groq'
 ANTHROPIC_API_KEY=your_anthropic_api_key
+GROQ_API_KEY=your_groq_api_key
 
 # Required: Must match the frontend's NEXTAUTH_SECRET to verify JWTs
 NEXTAUTH_SECRET=a_secure_random_string
