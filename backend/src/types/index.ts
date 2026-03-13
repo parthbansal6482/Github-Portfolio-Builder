@@ -53,6 +53,7 @@ export interface UserPreferences {
   highlights: string[];
   lookingForJob: boolean;
   customTagline: string | null;
+  templateId: 'default' | 'neo-brutalism' | 'glassmorphism' | 'retro-rpg';
 }
 
 export interface GeneratedCopy {

@@ -43,6 +43,8 @@ export default function PortfolioViewClient({ portfolio, username }: ViewProps) 
       return <GlassmorphismTemplate portfolio={portfolio} username={username} />;
     case 'retro-rpg':
       return <RetroRpgTemplate portfolio={portfolio} username={username} />;
+    case 'default':
+    case 'minimal':
     default:
       return <DefaultTemplate portfolio={portfolio} username={username} />;
   }

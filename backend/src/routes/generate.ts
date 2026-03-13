@@ -70,6 +70,7 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
       .update({
         preferences,
         generated_copy: finalCopy,
+        template_id: preferences.templateId || 'default',
       })
       .eq('id', portfolio.id);
 

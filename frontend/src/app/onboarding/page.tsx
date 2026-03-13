@@ -5,15 +5,47 @@ import { useRouter } from 'next/navigation';
 import { generateCopy, fetchGitHubData, ApiRequestError } from '@/lib/api';
 import type { UserPreferences } from '@/types';
 
-type Step = 'vibe' | 'color' | 'layout' | 'role' | 'input';
+type Step = 'template' | 'vibe' | 'color' | 'layout' | 'role' | 'input';
 
-const STEPS: Step[] = ['vibe', 'color', 'layout', 'role', 'input'];
+const STEPS: Step[] = ['template', 'vibe', 'color', 'layout', 'role', 'input'];
+
+const TEMPLATE_OPTIONS = [
+  {
+    id: 'default' as const,
+    name: 'Default',
+    description: 'Clean, minimal portfolio with adaptive dark/light mode and smooth animations.',
+    colors: ['#0f0f23', '#f8fafc', '#6366f1'],
+    emoji: '✨',
+  },
+  {
+    id: 'neo-brutalism' as const,
+    name: 'Neo-Brutalism',
+    description: 'Bold, unapologetic design with thick borders, loud colors, and raw energy.',
+    colors: ['#fff0f5', '#000000', '#ff90e8'],
+    emoji: '⚡',
+  },
+  {
+    id: 'glassmorphism' as const,
+    name: 'Glassmorphism',
+    description: 'Frosted-glass panels over a dark canvas with electric cyan accents and ambient glow.',
+    colors: ['#0B0C10', '#1F2833', '#00E5FF'],
+    emoji: '🔮',
+  },
+  {
+    id: 'retro-rpg' as const,
+    name: 'Retro RPG',
+    description: 'Quest-inspired parchment layout with pixel accents, levels, and a tavern vibe.',
+    colors: ['#F2F2EB', '#44403c', '#4F6348'],
+    emoji: '🗡️',
+  },
+];
 
 export default function OnboardingPage() {
   const router = useRouter();
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [preferences, setPreferences] = useState<UserPreferences>({
+    templateId: 'default',
     vibe: 'minimal',
     accentColor: '#6366f1',
     layout: 'grid',
@@ -110,6 +142,65 @@ export default function OnboardingPage() {
           {error && (
             <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', color: '#ef4444', padding: '16px', borderRadius: '8px', marginBottom: '24px' }}>
               {error}
+            </div>
+          )}
+
+          {step === 'template' && (
+            <div>
+              <h2 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px' }}>Choose a Template</h2>
+              <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '32px' }}>Pick the visual design for your portfolio. You can always change it later.</p>
+
+              <div style={{ display: 'grid', gap: '16px' }}>
+                {TEMPLATE_OPTIONS.map((t) => {
+                  const isSelected = preferences.templateId === t.id;
+                  return (
+                    <label
+                      key={t.id}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '16px',
+                        padding: '20px', borderRadius: '14px',
+                        border: isSelected ? '2px solid #6366f1' : '1px solid rgba(255,255,255,0.1)',
+                        background: isSelected ? 'rgba(99, 102, 241, 0.08)' : 'rgba(255,255,255,0.02)',
+                        cursor: 'pointer', transition: 'all 0.2s',
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="templateId"
+                        value={t.id}
+                        checked={isSelected}
+                        onChange={() => updatePreference('templateId', t.id)}
+                        style={{ display: 'none' }}
+                      />
+                      {/* Color swatch */}
+                      <div style={{
+                        width: '56px', height: '56px', borderRadius: '12px', flexShrink: 0,
+                        background: `linear-gradient(135deg, ${t.colors[0]} 0%, ${t.colors[1]} 50%, ${t.colors[2]} 100%)`,
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '24px',
+                      }}>
+                        {t.emoji}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: '16px', marginBottom: '4px' }}>{t.name}</div>
+                        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>{t.description}</div>
+                      </div>
+                      {isSelected && (
+                        <div style={{
+                          width: '24px', height: '24px', borderRadius: '50%',
+                          background: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0,
+                        }}>
+                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                            <path d="M3 7l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
             </div>
           )}
 

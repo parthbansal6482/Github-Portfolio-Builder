@@ -106,7 +106,7 @@ router.post('/save-preferences', requireAuth, async (req: Request, res: Response
 
     const { error: updateError } = await supabase
       .from('portfolios')
-      .update({ preferences })
+      .update({ preferences, template_id: preferences.templateId || 'default' })
       .eq('user_id', user.id);
 
     if (updateError) {
