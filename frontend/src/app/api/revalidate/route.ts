@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { path } = body as { path: string };
+    const { path } = body as { path?: string };
 
     if (!path) {
       return NextResponse.json(
@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
     revalidatePath(path);
 
     return NextResponse.json({ revalidated: true, path });
-  } catch {
+  } catch (err: any) {
     return NextResponse.json(
-      { error: 'Failed to revalidate' },
+      { error: 'Failed to revalidate', message: err.message },
       { status: 500 }
     );
   }
