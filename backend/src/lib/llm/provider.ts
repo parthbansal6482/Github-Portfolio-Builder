@@ -4,7 +4,7 @@ import { withRetry } from './errors.js';
 
 // Model constants
 export const ANTHROPIC_MODEL = 'claude-opus-4-6';
-export const GROQ_MODEL = 'llama3-70b-8192';
+export const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 // Initialize the SDKs. Use dummy keys if not present so the server starts,
 // but throw when actually calling if it's missing.
