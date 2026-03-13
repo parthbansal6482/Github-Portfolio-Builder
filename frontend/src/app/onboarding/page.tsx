@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { generateCopy, ApiRequestError } from '@/lib/api';
+import { generateCopy, fetchGitHubData, ApiRequestError } from '@/lib/api';
 import type { UserPreferences } from '@/types';
 
 type Step = 'vibe' | 'color' | 'layout' | 'role' | 'input';
@@ -11,7 +11,7 @@ const STEPS: Step[] = ['vibe', 'color', 'layout', 'role', 'input'];
 
 export default function OnboardingPage() {
   const router = useRouter();
-  
+
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [preferences, setPreferences] = useState<UserPreferences>({
     vibe: 'minimal',
@@ -27,28 +27,45 @@ export default function OnboardingPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // GitHub sync — runs in background on mount so github_data is ready before generate
+  const [syncStatus, setSyncStatus] = useState<'pending' | 'done' | 'error'>('pending');
+  const hasSynced = useRef(false);
+
+  useEffect(() => {
+    if (hasSynced.current) return;
+    hasSynced.current = true;
+
+    fetchGitHubData()
+      .then(() => setSyncStatus('done'))
+      .catch((err) => {
+        console.error('Background GitHub sync failed:', err);
+        setSyncStatus('error');
+      });
+  }, []);
+
   const step = STEPS[currentStepIndex];
   const isLastStep = currentStepIndex === STEPS.length - 1;
 
   const handleNext = () => {
-    if (!isLastStep) {
-      setCurrentStepIndex((prev) => prev + 1);
-    }
+    if (!isLastStep) setCurrentStepIndex((prev) => prev + 1);
   };
 
   const handleBack = () => {
-    if (currentStepIndex > 0) {
-      setCurrentStepIndex((prev) => prev - 1);
-    }
+    if (currentStepIndex > 0) setCurrentStepIndex((prev) => prev - 1);
   };
 
   const handleFinish = async () => {
+    if (syncStatus === 'error') {
+      setError('Failed to sync your GitHub data. Please refresh and try again.');
+      return;
+    }
+
     setIsGenerating(true);
     setError(null);
     try {
       const finalPrefs: UserPreferences = {
         ...preferences,
-        highlights: highlightsText.split('\n').filter(s => s.trim().length > 0)
+        highlights: highlightsText.split('\n').filter((s) => s.trim().length > 0),
       };
       await generateCopy(finalPrefs);
       router.push('/review');
@@ -89,7 +106,7 @@ export default function OnboardingPage() {
       {/* Main Content Area */}
       <main style={{ flex: 1, padding: '40px 24px', display: 'flex', justifyContent: 'center' }}>
         <div style={{ maxWidth: '600px', width: '100%' }}>
-          
+
           {error && (
             <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', color: '#ef4444', padding: '16px', borderRadius: '8px', marginBottom: '24px' }}>
               {error}
@@ -100,7 +117,7 @@ export default function OnboardingPage() {
             <div>
               <h2 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px' }}>What&apos;s your vibe?</h2>
               <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '32px' }}>This defines the writing style of your headline and about section.</p>
-              
+
               <div style={{ display: 'grid', gap: '12px' }}>
                 {(['minimal', 'dark', 'warm', 'corporate', 'hacker'] as const).map((v) => (
                   <label key={v} style={{
@@ -109,11 +126,11 @@ export default function OnboardingPage() {
                     background: preferences.vibe === v ? 'rgba(99, 102, 241, 0.1)' : 'rgba(255,255,255,0.02)',
                     cursor: 'pointer', transition: 'all 0.2s'
                   }}>
-                    <input 
-                      type="radio" 
-                      name="vibe" 
-                      value={v} 
-                      checked={preferences.vibe === v} 
+                    <input
+                      type="radio"
+                      name="vibe"
+                      value={v}
+                      checked={preferences.vibe === v}
                       onChange={() => updatePreference('vibe', v)}
                       style={{ marginRight: '16px', accentColor: '#6366f1' }}
                     />
@@ -136,11 +153,11 @@ export default function OnboardingPage() {
                     border: preferences.accentColor === c ? '4px solid #fff' : '4px solid transparent',
                     cursor: 'pointer', transition: 'all 0.2s'
                   }}>
-                    <input 
-                      type="radio" 
-                      name="accentColor" 
-                      value={c} 
-                      checked={preferences.accentColor === c} 
+                    <input
+                      type="radio"
+                      name="accentColor"
+                      value={c}
+                      checked={preferences.accentColor === c}
                       onChange={() => updatePreference('accentColor', c)}
                       style={{ display: 'none' }}
                     />
@@ -162,11 +179,11 @@ export default function OnboardingPage() {
                     background: preferences.layout === l ? 'rgba(99, 102, 241, 0.1)' : 'rgba(255,255,255,0.02)',
                     cursor: 'pointer', transition: 'all 0.2s'
                   }}>
-                    <input 
-                      type="radio" 
-                      name="layout" 
-                      value={l} 
-                      checked={preferences.layout === l} 
+                    <input
+                      type="radio"
+                      name="layout"
+                      value={l}
+                      checked={preferences.layout === l}
                       onChange={() => updatePreference('layout', l)}
                       style={{ marginRight: '16px', accentColor: '#6366f1' }}
                     />
@@ -189,11 +206,11 @@ export default function OnboardingPage() {
                     background: preferences.role === r ? 'rgba(99, 102, 241, 0.1)' : 'rgba(255,255,255,0.02)',
                     cursor: 'pointer', transition: 'all 0.2s'
                   }}>
-                    <input 
-                      type="radio" 
-                      name="role" 
-                      value={r} 
-                      checked={preferences.role === r} 
+                    <input
+                      type="radio"
+                      name="role"
+                      value={r}
+                      checked={preferences.role === r}
                       onChange={() => updatePreference('role', r)}
                       style={{ marginRight: '16px', accentColor: '#6366f1' }}
                     />
@@ -241,26 +258,30 @@ export default function OnboardingPage() {
           >
             Back
           </button>
-          
+
           {isLastStep ? (
             <button
               onClick={handleFinish}
-              disabled={isGenerating}
+              disabled={isGenerating || syncStatus === 'pending'}
               style={{
                 padding: '12px 32px', borderRadius: '8px', fontWeight: 600,
-                background: isGenerating ? 'rgba(99, 102, 241, 0.5)' : '#6366f1',
-                color: '#fff', border: 'none', cursor: isGenerating ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center'
+                background: (isGenerating || syncStatus === 'pending') ? 'rgba(99, 102, 241, 0.5)' : '#6366f1',
+                color: '#fff', border: 'none', cursor: (isGenerating || syncStatus === 'pending') ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', gap: '8px',
               }}
             >
-              {isGenerating ? 'Generating with AI...' : 'Finish & Generate'}
+              {isGenerating
+                ? 'Generating with AI...'
+                : syncStatus === 'pending'
+                  ? 'Syncing GitHub...'
+                  : 'Finish & Generate'}
             </button>
           ) : (
             <button
               onClick={handleNext}
               style={{
                 padding: '12px 32px', borderRadius: '8px', fontWeight: 600,
-                background: '#fff', color: '#000', border: 'none', 
+                background: '#fff', color: '#000', border: 'none',
                 cursor: 'pointer'
               }}
             >
