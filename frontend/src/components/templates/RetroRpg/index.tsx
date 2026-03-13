@@ -6,6 +6,7 @@ import ProjectsSection from './ProjectsSection';
 import Dock from './Dock';
 import InsightsSection from '../InsightsSection';
 import type { InsightTheme } from '../InsightsSection/theme';
+import ContributionHeatmap from '../../ContributionHeatmap';
 
 export default function RetroRpgTemplate({ portfolio, username }: TemplateProps) {
     const copy = portfolio.generatedCopy || {
@@ -61,6 +62,21 @@ export default function RetroRpgTemplate({ portfolio, username }: TemplateProps)
                     profile={githubData.profile}
                     accentColor={accentColor}
                 />
+
+                {githubData.contributions?.calendar && (
+                    <section className="bg-[#FAF9F6] rounded-3xl p-8 md:p-12 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-stone-200">
+                        <div className="flex items-center space-x-4 mb-8">
+                            <h2 className="text-4xl font-pixel text-stone-800 tracking-wider">Activity Log</h2>
+                            <div className="h-px flex-grow bg-stone-300"></div>
+                            <span className="font-elegant italic text-stone-500">Chapter II</span>
+                        </div>
+                        <ContributionHeatmap 
+                            calendar={githubData.contributions.calendar} 
+                            accentColor={accentColor} 
+                            theme="light" 
+                        />
+                    </section>
+                )}
 
                 {githubData.pinnedRepos && githubData.pinnedRepos.length > 0 && (
                     <ProjectsSection

@@ -4,6 +4,7 @@ import React from 'react';
 import type { TemplateProps } from './types';
 import InsightsSection from './InsightsSection';
 import type { InsightTheme } from './InsightsSection/theme';
+import ContributionHeatmap from '../ContributionHeatmap';
 
 export default function DefaultTemplate({ portfolio, username }: TemplateProps) {
     const { githubData, preferences, generatedCopy } = portfolio;
@@ -93,6 +94,22 @@ export default function DefaultTemplate({ portfolio, username }: TemplateProps) 
                         {copy.about}
                     </p>
                 </section>
+
+                {/* Activity Section */}
+                {githubData.contributions?.calendar && (
+                    <section>
+                        <h3 style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600, color: secondaryTextColor, marginBottom: '24px' }}>
+                            Activity
+                        </h3>
+                        <div style={{ background: cardBg, border: cardBorder, borderRadius: '12px', padding: '24px' }}>
+                            <ContributionHeatmap 
+                                calendar={githubData.contributions.calendar} 
+                                accentColor={accentColor} 
+                                theme={bgColor === '#0f0f23' ? 'dark' : 'light'} 
+                            />
+                        </div>
+                    </section>
+                )}
 
                 {/* Projects Section */}
                 <section>
