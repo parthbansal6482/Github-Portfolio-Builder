@@ -95,9 +95,10 @@ router.post('/create', async (req: Request, res: Response) => {
 // Updates the username for an existing profile
 router.post('/update-username', async (req: Request, res: Response) => {
   try {
-    const { userId, username } = req.body as {
+    const { userId, username, githubUsername } = req.body as {
       userId: string;
       username: string;
+      githubUsername?: string;
     };
 
     if (!userId || !username) {
@@ -148,11 +149,18 @@ router.post('/update-username', async (req: Request, res: Response) => {
       return;
     }
 
-    // Update the username
+    // Upsert the profile — handles the case where profile/create was skipped
+    // (e.g. GitHub username was a reserved subdomain, so no row was ever inserted)
     const { data, error } = await supabase
       .from('profiles')
-      .update({ username: usernameLower })
-      .eq('id', userId)
+      .upsert(
+        {
+          id: userId,
+          username: usernameLower,
+          github_username: githubUsername || usernameLower,
+        },
+        { onConflict: 'id' }
+      )
       .select()
       .single();
 

@@ -49,6 +49,7 @@ export default function ChooseUsernamePage() {
         body: JSON.stringify({
           userId: session?.user?.id,
           username: username.toLowerCase().trim(),
+          githubUsername: session?.user?.githubUsername,
         }),
       });
 

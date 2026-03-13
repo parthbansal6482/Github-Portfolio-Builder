@@ -1,20 +1,26 @@
--- GitFolio Database Schema
--- Run this in the Supabase SQL Editor
+-- Migration 002: Reset schema to correct types (dev environment — no prod data)
+-- Drops both tables with CASCADE (removes all dependent policies, indexes, triggers)
+-- then recreates them with user_id as text, matching 001_initial_schema.sql
+
+-- Drop everything with CASCADE to handle dependent policies/indexes/triggers
+DROP TABLE IF EXISTS portfolios CASCADE;
+DROP TABLE IF EXISTS profiles CASCADE;
+DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
 
 -- ============================================
--- 1. TABLES
+-- Recreate profiles — id is TEXT (GitHub numeric user ID)
 -- ============================================
-
--- profiles table
-CREATE TABLE IF NOT EXISTS profiles (
-  id               text        PRIMARY KEY,  -- NextAuth provider account ID (GitHub ID)
+CREATE TABLE profiles (
+  id               text        PRIMARY KEY,  -- GitHub numeric user ID e.g. "179290013"
   username         text        UNIQUE NOT NULL,
   github_username  text        UNIQUE NOT NULL,
   created_at       timestamptz DEFAULT now()
 );
 
--- portfolios table
-CREATE TABLE IF NOT EXISTS portfolios (
+-- ============================================
+-- Recreate portfolios — user_id is TEXT referencing profiles.id
+-- ============================================
+CREATE TABLE portfolios (
   id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id          text        REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   github_data      jsonb,
@@ -26,55 +32,40 @@ CREATE TABLE IF NOT EXISTS portfolios (
   updated_at       timestamptz DEFAULT now()
 );
 
--- Index for fast portfolio lookups by user
-CREATE INDEX IF NOT EXISTS idx_portfolios_user_id ON portfolios(user_id);
-
--- Index for fast public portfolio lookups by published status
-CREATE INDEX IF NOT EXISTS idx_portfolios_published ON portfolios(is_published) WHERE is_published = true;
+CREATE INDEX idx_portfolios_user_id ON portfolios(user_id);
+CREATE INDEX idx_portfolios_published ON portfolios(is_published) WHERE is_published = true;
 
 -- ============================================
--- 2. ROW LEVEL SECURITY
+-- RLS
 -- ============================================
-
--- Enable RLS on both tables
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE portfolios ENABLE ROW LEVEL SECURITY;
 
--- Policy 1: Profiles — owner can read and write their own row
 CREATE POLICY "profiles_owner_select"
-  ON profiles
-  FOR SELECT
+  ON profiles FOR SELECT
   USING (auth.uid()::text = id);
 
 CREATE POLICY "profiles_owner_insert"
-  ON profiles
-  FOR INSERT
+  ON profiles FOR INSERT
   WITH CHECK (auth.uid()::text = id);
 
 CREATE POLICY "profiles_owner_update"
-  ON profiles
-  FOR UPDATE
+  ON profiles FOR UPDATE
   USING (auth.uid()::text = id)
   WITH CHECK (auth.uid()::text = id);
 
--- Policy 2: Portfolios — owner can do everything on their own row
 CREATE POLICY "portfolios_owner_all"
-  ON portfolios
-  FOR ALL
+  ON portfolios FOR ALL
   USING (auth.uid()::text = user_id)
   WITH CHECK (auth.uid()::text = user_id);
 
--- Policy 3: Portfolios — anyone can read published portfolios
 CREATE POLICY "portfolios_public_read"
-  ON portfolios
-  FOR SELECT
+  ON portfolios FOR SELECT
   USING (is_published = true);
 
 -- ============================================
--- 3. UPDATED_AT TRIGGER
+-- updated_at trigger
 -- ============================================
-
--- Auto-update the updated_at column on portfolio changes
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
