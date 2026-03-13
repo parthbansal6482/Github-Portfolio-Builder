@@ -7,6 +7,7 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:400
 
 async function getPortfolio(username: string): Promise<Portfolio | null> {
   try {
+    console.log("Heyyy")
     // Next.js fetch with ISR revalidation enabled
     // We fetch from the public open route on our backend
     const res = await fetch(`${BACKEND_URL}/api/portfolio/${username}`, {
@@ -32,23 +33,27 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params;
+
   const portfolio = await getPortfolio(username);
-  
+
   if (!portfolio) {
-    return { title: 'Not Found | GitFolio' };
+    return { title: "Not Found | GitFolio" };
   }
 
   const name = portfolio.githubData.profile.name || username;
-  const role = portfolio.preferences.role || 'Developer';
-  
+  const role = portfolio.preferences.role || "Developer";
+
   return {
     title: `${name} — ${role}`,
-    description: portfolio.generatedCopy?.headline || `Check out ${name}'s portfolio on GitFolio.`,
+    description:
+      portfolio.generatedCopy?.headline ||
+      `Check out ${name}'s portfolio on GitFolio.`,
   };
 }
 
 export default async function PortfolioPage({ params }: Props) {
   const { username } = await params;
+
   const portfolio = await getPortfolio(username);
 
   if (!portfolio) {
