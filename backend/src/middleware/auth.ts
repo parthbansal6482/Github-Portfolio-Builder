@@ -16,7 +16,7 @@ declare global {
 
 const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET || '';
 
-// Auth middleware — validates NextAuth JWT from Authorization header
+// Auth middleware — validates JWT or raw GitHub OAuth token from Authorization header
 export const authMiddleware = async (
   req: Request,
   _res: Response,
@@ -27,22 +27,45 @@ export const authMiddleware = async (
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.slice(7);
 
-    try {
-      // NextAuth JWTs are signed with NEXTAUTH_SECRET
-      const decoded = jwt.verify(token, NEXTAUTH_SECRET) as {
-        sub?: string;
-        userId?: string;
-        githubUsername?: string;
-        accessToken?: string;
-      };
+    // --- Path 1: Raw GitHub OAuth token (gho_ prefix) ---
+    if (token.startsWith('gho_') || token.startsWith('ghp_')) {
+      try {
+        const ghRes = await fetch('https://api.github.com/user', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'GitFolio-Backend',
+          },
+        });
 
-      req.user = {
-        id: decoded.userId || decoded.sub || '',
-        githubUsername: decoded.githubUsername || '',
-        accessToken: decoded.accessToken || '',
-      };
-    } catch {
-      // Invalid token — don't set req.user, let requireAuth handle 401
+        if (ghRes.ok) {
+          const ghUser = await ghRes.json() as { id: number; login: string };
+          req.user = {
+            id: String(ghUser.id),
+            githubUsername: ghUser.login,
+            accessToken: token,
+          };
+        }
+      } catch {
+        // GitHub API unreachable — req.user stays unset, requireAuth will 401
+      }
+    } else {
+      // --- Path 2: NextAuth JWT signed with NEXTAUTH_SECRET ---
+      try {
+        const decoded = jwt.verify(token, NEXTAUTH_SECRET) as {
+          sub?: string;
+          userId?: string;
+          githubUsername?: string;
+          accessToken?: string;
+        };
+
+        req.user = {
+          id: decoded.userId || decoded.sub || '',
+          githubUsername: decoded.githubUsername || '',
+          accessToken: decoded.accessToken || '',
+        };
+      } catch {
+        // Invalid JWT — req.user stays unset, requireAuth will 401
+      }
     }
   }
 
