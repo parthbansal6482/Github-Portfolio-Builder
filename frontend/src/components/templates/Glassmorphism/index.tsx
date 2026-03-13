@@ -4,9 +4,10 @@ import HeroSection from './HeroSection';
 import AboutSection from './AboutSection';
 import ProjectsSection from './ProjectsSection';
 import FooterSection from './FooterSection';
+import InsightsSection from '../InsightsSection';
+import type { InsightTheme } from '../InsightsSection/theme';
 
 export default function GlassmorphismTemplate({ portfolio, username }: TemplateProps) {
-    // Extract data. If generation failed/is still basic, fallback to raw Github data.
     const copy = portfolio.generatedCopy || {
         headline: `Hi, I'm ${portfolio.githubData.profile.name || username}`,
         about: portfolio.githubData.profile.bio || 'A passionate developer.',
@@ -15,11 +16,17 @@ export default function GlassmorphismTemplate({ portfolio, username }: TemplateP
     };
 
     const { githubData, preferences } = portfolio;
+    const accentColor = preferences.accentColor || '#00E5FF';
 
-    // Theme rules for Glassmorphism
-    // Obsidian Background: #0B0C10
-    // Electric Cyan Accent: #00E5FF
-    // Deep charcoal surface: #1F2833 / white/5
+    const insightTheme: InsightTheme = {
+        accentColor,
+        textColor: '#e5e7eb',
+        secondaryTextColor: 'rgba(255,255,255,0.5)',
+        bgColor: '#0B0C10',
+        cardBg: 'rgba(31,40,51,0.4)',
+        cardBorder: '1px solid rgba(255,255,255,0.1)',
+        fontFamily: 'system-ui, sans-serif',
+    };
 
     return (
         <div className="min-h-screen bg-[#0B0C10] text-gray-300 font-sans selection:bg-[#00E5FF]/30 selection:text-white">
@@ -33,27 +40,29 @@ export default function GlassmorphismTemplate({ portfolio, username }: TemplateP
                 <HeroSection
                     headline={copy.headline}
                     tagline={preferences.customTagline}
-                    accentColor={preferences.accentColor || '#00E5FF'}
+                    accentColor={accentColor}
                 />
 
                 <AboutSection
                     about={copy.about}
                     profile={githubData.profile}
-                    accentColor={preferences.accentColor || '#00E5FF'}
+                    accentColor={accentColor}
                 />
 
                 {githubData.pinnedRepos && githubData.pinnedRepos.length > 0 && (
                     <ProjectsSection
                         projects={githubData.pinnedRepos}
                         descriptions={copy.projectDescriptions}
-                        accentColor={preferences.accentColor || '#00E5FF'}
+                        accentColor={accentColor}
                     />
                 )}
+
+                <InsightsSection data={portfolio.enrichedData} theme={insightTheme} />
 
                 <FooterSection
                     username={username}
                     githubUrl={`https://github.com/${username}`}
-                    accentColor={preferences.accentColor || '#00E5FF'}
+                    accentColor={accentColor}
                 />
             </div>
         </div>

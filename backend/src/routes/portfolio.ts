@@ -10,7 +10,7 @@ const router = Router();
 router.get('/:username', async (req: Request, res: Response) => {
   try {
     const { username } = req.params;
-    
+
     // We need to find the user id from the profiles table, then get the portfolio
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
@@ -44,6 +44,7 @@ router.get('/:username', async (req: Request, res: Response) => {
       generatedCopy: portfolio.generated_copy,
       templateId: portfolio.template_id,
       isPublished: portfolio.is_published,
+      enrichedData: portfolio.enriched_github_data || null,
       viewCount: portfolio.view_count,
       updatedAt: portfolio.updated_at,
     };
@@ -149,7 +150,7 @@ router.post('/publish', requireAuth, async (req: Request, res: Response) => {
         .select('username')
         .eq('id', user.id)
         .single();
-        
+
       if (profile) {
         // Await revalidate (Rule 6 -> Synchronous with publish action)
         await revalidatePath(`/portfolio/${profile.username}`);
@@ -191,7 +192,7 @@ router.post('/unpublish', requireAuth, async (req: Request, res: Response) => {
         .select('username')
         .eq('id', user.id)
         .single();
-        
+
       if (profile) {
         // Await revalidate (Rule 6 -> Synchronous with publish action)
         await revalidatePath(`/portfolio/${profile.username}`);

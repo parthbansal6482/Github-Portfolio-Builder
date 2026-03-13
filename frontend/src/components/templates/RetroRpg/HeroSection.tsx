@@ -13,14 +13,13 @@ interface HeroSectionProps {
 
 export default function HeroSection({ headline, tagline, stats, accentColor }: HeroSectionProps) {
     return (
-        <section className="relative min-h-[70vh] flex flex-col items-center justify-center p-6 pt-24 overflow-hidden bg-stone-900">
+        <section className="relative min-h-[100vh] flex flex-col items-center justify-center p-6 pt-24 bg-black">
 
             {/* Background Pixel Art Placeholder (Using a generic landscape pattern since we don't have an asset) */}
             <div
-                className="absolute inset-0 z-0 opacity-30 bg-cover bg-center"
+                className="absolute inset-0 z-10 opacity-30 bg-cover bg-center"
                 style={{
                     backgroundImage: `url('https://hrsht.me/images/Hero.png')`, // A moody forest
-                    filter: 'contrast(2.0) saturate(0.8) sepia(0.5)'
                 }}
             ></div>
             <div className="absolute inset-0 bg-gradient-to-t from-[#F2F2EB] via-transparent to-black/80 z-0"></div>

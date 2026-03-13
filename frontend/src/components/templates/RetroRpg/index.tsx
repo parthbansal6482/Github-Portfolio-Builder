@@ -4,9 +4,10 @@ import HeroSection from './HeroSection';
 import AboutSection from './AboutSection';
 import ProjectsSection from './ProjectsSection';
 import Dock from './Dock';
+import InsightsSection from '../InsightsSection';
+import type { InsightTheme } from '../InsightsSection/theme';
 
 export default function RetroRpgTemplate({ portfolio, username }: TemplateProps) {
-    // Extract data. If generation failed/is still basic, fallback to raw Github data.
     const copy = portfolio.generatedCopy || {
         headline: `Greetings, traveler. I am ${portfolio.githubData.profile.name || username}`,
         about: portfolio.githubData.profile.bio || 'A wandering developer seeking new quests.',
@@ -15,11 +16,17 @@ export default function RetroRpgTemplate({ portfolio, username }: TemplateProps)
     };
 
     const { githubData, preferences } = portfolio;
+    const accentColor = preferences.accentColor || '#4F6348';
 
-    // Theme rules for Retro RPG
-    // Background: Cream/Parchment #F2F2EB
-    // Accents: Sage Green #4F6348, Forest Green
-    // Typography: VT323 (Pixel serif-esque), Playfair Display (Elegant serif)
+    const insightTheme: InsightTheme = {
+        accentColor,
+        textColor: '#44403c',
+        secondaryTextColor: '#78716c',
+        bgColor: '#F2F2EB',
+        cardBg: '#FAF9F6',
+        cardBorder: '1px solid #d6d3d1',
+        fontFamily: '"Playfair Display", serif',
+    };
 
     return (
         <div className="min-h-screen bg-[#F2F2EB] text-stone-800 selection:bg-[#4F6348]/20 selection:text-stone-900 pb-24">
@@ -44,7 +51,7 @@ export default function RetroRpgTemplate({ portfolio, username }: TemplateProps)
                     followers: githubData.profile.followers,
                     repos: githubData.profile.publicRepos
                 }}
-                accentColor={preferences.accentColor || '#4F6348'}
+                accentColor={accentColor}
             />
 
             <div className="relative z-10 max-w-5xl mx-auto px-6 py-16 space-y-24">
@@ -52,20 +59,22 @@ export default function RetroRpgTemplate({ portfolio, username }: TemplateProps)
                 <AboutSection
                     about={copy.about}
                     profile={githubData.profile}
-                    accentColor={preferences.accentColor || '#4F6348'}
+                    accentColor={accentColor}
                 />
 
                 {githubData.pinnedRepos && githubData.pinnedRepos.length > 0 && (
                     <ProjectsSection
                         projects={githubData.pinnedRepos}
                         descriptions={copy.projectDescriptions}
-                        accentColor={preferences.accentColor || '#4F6348'}
+                        accentColor={accentColor}
                     />
                 )}
 
+                <InsightsSection data={portfolio.enrichedData} theme={insightTheme} sectionTitle="Chapter III — Developer Insights" />
+
             </div>
 
-            <Dock accentColor={preferences.accentColor || '#4F6348'} />
+            <Dock accentColor={accentColor} />
         </div>
     );
 }

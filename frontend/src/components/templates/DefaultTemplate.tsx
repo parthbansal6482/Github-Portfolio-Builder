@@ -2,6 +2,8 @@
 
 import React from 'react';
 import type { TemplateProps } from './types';
+import InsightsSection from './InsightsSection';
+import type { InsightTheme } from './InsightsSection/theme';
 
 export default function DefaultTemplate({ portfolio, username }: TemplateProps) {
     const { githubData, preferences, generatedCopy } = portfolio;
@@ -26,6 +28,11 @@ export default function DefaultTemplate({ portfolio, username }: TemplateProps) 
     let fontFam = 'var(--font-geist-sans), system-ui, sans-serif';
     if (preferences.vibe === 'hacker') fontFam = 'var(--font-geist-mono), monospace';
     if (preferences.vibe === 'corporate') fontFam = 'Inter, system-ui, sans-serif';
+
+    const insightTheme: InsightTheme = {
+        accentColor, textColor, secondaryTextColor,
+        bgColor, cardBg, cardBorder, fontFamily: fontFam,
+    };
 
     return (
         <div style={{
@@ -155,6 +162,9 @@ export default function DefaultTemplate({ portfolio, username }: TemplateProps) 
                         })}
                     </div>
                 </section>
+
+                {/* Enriched Insights Section */}
+                <InsightsSection data={portfolio.enrichedData} theme={insightTheme} />
 
                 {/* Footer */}
                 <footer style={{ marginTop: '32px', paddingTop: '32px', borderTop: cardBorder, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', color: secondaryTextColor }}>
