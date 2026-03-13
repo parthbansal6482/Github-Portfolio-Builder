@@ -1,0 +1,19 @@
+{
+  "name": "gitfolio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GitFolio — Portfolio websites from GitHub profiles",
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared"
+  ],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "build:frontend": "npm run build --workspace=frontend",
+    "build:backend": "npm run build --workspace=backend",
+    "sync-types": "cp shared/types/index.ts frontend/src/types/index.ts && cp shared/types/index.ts backend/src/types/index.ts",
+    "lint": "npm run lint --workspace=frontend && npm run lint --workspace=backend"
+  }
+}
