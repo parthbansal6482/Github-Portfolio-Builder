@@ -805,6 +805,7 @@ export function calculateWorkingStyle(
 // These imports are at the bottom to avoid circular dependencies — the LLM
 // module imports from types, and types imports nothing from github.
 import { generateSkillClusters, generateForkInterests, generateWorkingStyleSummary } from './llm/index.js';
+import { analyseRepoCommitQuality, aggregateCommitQuality } from './commitQuality.js';
 import type { EnrichedGitHubData } from '../types/index.js';
 
 /**
@@ -922,7 +923,66 @@ export async function fetchEnrichedGitHubData(
   };
 
   // ---------------------------------------------------------------
-  // Run all 3 AI calls in parallel — failures return defaults
+  // BATCH 3 — Commit quality analysis
+  // Runs after Batch 2 because it uses moistActiveRepos for sampling.
+  // Top 3 repos by commit count are analyzed in parallel.
+  // Each call is independent — individual failures return null (skipped).
+  //
+  // TIMING: This batch adds ~2–3 seconds to total response time because
+  // it fetches up to 75 individual commit details (25 per repo × 3 repos)
+  // and calls the AI message scorer once per repo in parallel with details.
+  // ---------------------------------------------------------------
+  const TOP_REPOS_FOR_QUALITY = 3;
+  const reposToAnalyse = mostActiveRepos.slice(0, TOP_REPOS_FOR_QUALITY);
+
+  // Consistency scoring uses the contribution calendar.
+  // GitHubData only has totalLastYear (no daily breakdown), so we pass an empty
+  // calendar here. The consistency dimension will return score=0 with a note
+  // explaining the calendar is unavailable. A future enhancement could fetch
+  // the daily calendar via GraphQL and add it to GitHubData.
+  const calendar: Array<{ date: string; commitCount: number }> = [];
+
+  // Run per-repo quality analysis in parallel — individual failures return null
+  let commitQuality: EnrichedGitHubData['commitQuality'] = null;
+  try {
+    const repoQualityResults = await Promise.allSettled(
+      reposToAnalyse.map((repo) =>
+        analyseRepoCommitQuality(repo.name, username, token, username)
+      )
+    );
+
+    // Extract results — rejected promises become null (treated as skipped repos)
+    const repoResults = repoQualityResults.map((r) =>
+      r.status === 'fulfilled' ? r.value : null
+    );
+    if (repoQualityResults.some((r) => r.status === 'rejected')) {
+      console.warn('[fetchEnrichedGitHubData] One or more repo quality analyses failed');
+    }
+
+    // Aggregate all per-repo results into the final CommitQualityAnalysis
+    commitQuality = await aggregateCommitQuality(repoResults, mostActiveRepos, calendar);
+
+    // Back-fill qualityScore and qualityLabel onto the top 3 mostActiveRepos entries.
+    // These additions are backward compatible — existing consumers ignoring these fields
+    // are unaffected. Repos beyond the top 3 remain without quality fields.
+    if (commitQuality) {
+      for (const repo of mostActiveRepos.slice(0, TOP_REPOS_FOR_QUALITY)) {
+        const qualityEntry = commitQuality.qualityByRepo.find((q) => q.repoName === repo.name);
+        if (qualityEntry) {
+          repo.qualityScore = qualityEntry.compositeScore;
+          repo.qualityLabel = qualityEntry.compositeLabel;
+        }
+      }
+    }
+  } catch (err) {
+    // Total failure of quality analysis — degrade gracefully, rest of data is unaffected
+    console.warn('[fetchEnrichedGitHubData] Commit quality analysis failed entirely:', err);
+    commitQuality = null;
+  }
+
+  // ---------------------------------------------------------------
+  // Run all 3 existing AI calls in parallel — failures return defaults
+  // (These run after Batch 3 / quality analysis; they do not re-run Batch 2.)
   // ---------------------------------------------------------------
   const [skillClustersResult, forkInterestsResult, workingStyleSummaryResult] = await Promise.allSettled([
     generateSkillClusters(githubData, enrichedPartial),
@@ -949,8 +1009,6 @@ export async function fetchEnrichedGitHubData(
   if (workingStyleSummaryResult.status === 'rejected') {
     console.warn('[fetchEnrichedGitHubData] Working style summary failed:', workingStyleSummaryResult.reason);
   }
-
-  // --- Assemble and return the complete enriched payload ---
   return {
     languageBreakdown,
     mostActiveRepos,
@@ -964,7 +1022,224 @@ export async function fetchEnrichedGitHubData(
       breadthScore,
       summary: workingStyleSummary,
     },
+    commitQuality, // null if quality analysis failed entirely
     generatedAt: new Date().toISOString(),
   };
 }
+
+// ============================================
+// Commit Detail Fetchers — Task 2
+// Used by the commit quality analysis pipeline
+// ============================================
+
+/**
+ * The shape returned by the GitHub API for a single full commit detail.
+ * Used internally by fetchCommitDetails and fetchSampledCommitDetails.
+ */
+export interface CommitDetail {
+  sha: string; // commit SHA (for reference / deduplication)
+  message: string; // full commit message
+  additions: number; // lines added in this commit
+  deletions: number; // lines deleted in this commit
+  changedFiles: number; // number of files changed in this commit
+  fileNames: string[]; // list of all filenames touched in this commit
+}
+
+/**
+ * Fetches full details for a single commit from GitHub.
+ * This is the expensive call — one GitHub API call per commit.
+ * It returns stats (additions/deletions) and the list of filenames touched.
+ *
+ * Why this is needed: The basic commit list endpoint only returns the commit message
+ * and timestamp. To calculate atomicity (file count + line count) and test coverage
+ * signal (whether any test files were touched), we need the full commit detail.
+ *
+ * @param owner - GitHub username who owns the repo.
+ * @param repoName - Name of the repository.
+ * @param sha - The commit SHA to fetch details for.
+ * @param token - GitHub OAuth access token.
+ * @returns CommitDetail object, or null if the fetch fails.
+ * @throws Never — errors are caught and null is returned.
+ *
+ * FRONTEND NOTE: This is an internal function — the frontend never calls it directly.
+ * Processed results appear in CommitQualityAnalysis.
+ */
+export async function fetchCommitDetails(
+  owner: string,
+  repoName: string,
+  sha: string,
+  token: string
+): Promise<CommitDetail | null> {
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${owner}/${repoName}/commits/${sha}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github.v3+json',
+          'User-Agent': 'GitFolio',
+        },
+      }
+    );
+
+    if (!res.ok) {
+      console.warn(`[fetchCommitDetails] HTTP ${res.status} for ${repoName}/${sha}`);
+      return null;
+    }
+
+    // Shape of the GitHub single-commit response
+    const data = await res.json() as {
+      sha: string;
+      commit: { message: string };
+      stats?: { additions: number; deletions: number };
+      files?: Array<{ filename: string }>;
+    };
+
+    return {
+      sha: data.sha,
+      message: data.commit.message,
+      additions: data.stats?.additions ?? 0,
+      deletions: data.stats?.deletions ?? 0,
+      changedFiles: data.files?.length ?? 0,
+      fileNames: (data.files ?? []).map((f) => f.filename),
+    };
+  } catch (error) {
+    console.warn(
+      `[fetchCommitDetails] Failed for ${repoName}/${sha}:`,
+      error instanceof Error ? error.message : error
+    );
+    return null;
+  }
+}
+
+/**
+ * SAMPLING STRATEGY
+ * -----------------
+ * Repos to analyze: top 3 repos from mostActiveRepos (by commitCount).
+ * Commits to fetch messages: last 50 per repo via GET /repos/{owner}/{repo}/commits
+ *   → used for: message quality (AI), fix ratio, conventional commits, category breakdown
+ * Commits to fetch full details: last 25 per repo via GET /repos/{owner}/{repo}/commits/{sha}
+ *   → used for: atomicity (file count + line count), test coverage signal (file names)
+ * Maximum total detail calls: 3 repos × 25 commits = 75 detail calls
+ *   → All fetched in parallel via Promise.allSettled to keep total time under 4 seconds.
+ *   → Failed individual fetches are skipped (partial results still used).
+ *
+ * Why cap at 25? GitHub's API rate limit is 5,000 requests/hour for authenticated users.
+ * 25 detail calls per repo × 3 repos = 75 calls. This is well within safe limits even
+ * when combined with all other enrichment calls.
+ */
+
+/**
+ * Fetches full commit details for a sampled set of commits from a single repo.
+ * Samples up to MAX_DETAIL_COMMITS (25) from the provided commit summary list.
+ * All detail fetches run in parallel via Promise.allSettled.
+ * Individual failures are skipped — partial results are returned.
+ *
+ * @param owner - GitHub username who owns the repo.
+ * @param repoName - Name of the repository.
+ * @param commitShas - Array of commit SHAs to sample from (typically the last 50).
+ * @param token - GitHub OAuth access token.
+ * @returns Array of CommitDetail objects (empty on total failure, partial on partial failure).
+ *          Length will be at most MAX_DETAIL_COMMITS.
+ * @throws Never — all errors are caught and the partial result is returned.
+ *
+ * FRONTEND NOTE: This is an internal function. Results feed into the dimension
+ * calculators in commitQuality.ts (atomicity + test coverage dimensions).
+ */
+export async function fetchSampledCommitDetails(
+  owner: string,
+  repoName: string,
+  commitShas: string[],
+  token: string
+): Promise<CommitDetail[]> {
+  // --- SAMPLING STRATEGY (see block comment above) ---
+  const MAX_DETAIL_COMMITS = 25;
+
+  // Take the most recent commits up to the cap
+  const shasToFetch = commitShas.slice(0, MAX_DETAIL_COMMITS);
+
+  if (shasToFetch.length === 0) {
+    return [];
+  }
+
+  // Fetch all sampled commit details in parallel
+  const results = await Promise.allSettled(
+    shasToFetch.map((sha) => fetchCommitDetails(owner, repoName, sha, token))
+  );
+
+  // Collect successful results, filtering out nulls (failed fetches)
+  const details: CommitDetail[] = [];
+  for (const result of results) {
+    if (result.status === 'fulfilled' && result.value !== null) {
+      details.push(result.value);
+    } else if (result.status === 'rejected') {
+      // fetchCommitDetails already catches internally, but guard here too
+      console.warn(`[fetchSampledCommitDetails] A detail fetch was rejected for ${repoName}:`, result.reason);
+    }
+  }
+
+  return details;
+}
+
+/**
+ * Fetches the last N commit summaries (sha + message) for a repo.
+ * Used as the input for both message-level analysis (all N messages)
+ * and fetchSampledCommitDetails (takes the SHAs from this result).
+ *
+ * @param owner - GitHub username who owns the repo.
+ * @param repoName - Name of the repository.
+ * @param username - GitHub username to filter commits by author.
+ * @param token - GitHub OAuth access token.
+ * @param limit - Maximum number of commits to fetch (default 50, max 100).
+ * @returns Array of { sha, message } objects. Empty array on failure.
+ * @throws Never — errors are caught and [] is returned.
+ *
+ * FRONTEND NOTE: Internal function. Results feed into message quality AI analysis
+ * and into fetchSampledCommitDetails for full detail fetching.
+ */
+export async function fetchCommitSummaries(
+  owner: string,
+  repoName: string,
+  username: string,
+  token: string,
+  limit = 50
+): Promise<Array<{ sha: string; message: string }>> {
+  try {
+    // Clamp limit to GitHub's per_page maximum
+    const perPage = Math.min(limit, 100);
+
+    const res = await fetch(
+      `https://api.github.com/repos/${owner}/${repoName}/commits?author=${username}&per_page=${perPage}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github.v3+json',
+          'User-Agent': 'GitFolio',
+        },
+      }
+    );
+
+    if (!res.ok) {
+      console.warn(`[fetchCommitSummaries] HTTP ${res.status} for ${owner}/${repoName}`);
+      return [];
+    }
+
+    const commits = await res.json() as Array<{
+      sha: string;
+      commit: { message: string };
+    }>;
+
+    return commits.map((c) => ({
+      sha: c.sha,
+      message: c.commit.message,
+    }));
+  } catch (error) {
+    console.warn(
+      `[fetchCommitSummaries] Failed for ${owner}/${repoName}:`,
+      error instanceof Error ? error.message : error
+    );
+    return [];
+  }
+}
+
 

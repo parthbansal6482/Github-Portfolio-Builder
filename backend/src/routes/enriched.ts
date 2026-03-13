@@ -20,9 +20,11 @@
  *   { success: false, error: string, partialData?: Partial<EnrichedGitHubData> }
  *   partialData is included if some fetches succeeded before the failure.
  *
- * ⚠️  SLOW ENDPOINT: Takes 3–8 seconds. Always show a loading state to users.
- *     Call this endpoint once on demand (e.g., user clicks "Refresh Insights"),
- *     NOT on every page load. Results are cached in the database.
+ * ⚠️  SLOW ENDPOINT: Now takes 5–11 seconds (was 3–8s before commit quality was added).
+ *     Commit quality analysis (Batch 3) adds ~2–3s for 75 parallel commit detail fetches.
+ *     Always show a loading state. Do not call on every page load.
+ *     Call this endpoint once on demand (e.g., user clicks "Refresh Insights").
+ *     Results are cached in the database (portfolios.enriched_github_data).
  *
  * ─────────────────────────────────────────────────────────────────────────────
  * ENDPOINT 2: GET /api/github/enriched/:username
@@ -48,9 +50,13 @@
  *   languageBreakdown: { [language: string]: number }
  *     — Language percentages by byte count. Values sum to 100. May be {}.
  *
- *   mostActiveRepos: ActiveRepo[]
- *     — Array of { name, commitCount, url }. Pre-sorted by commitCount desc.
- *       Length ≤ 6. May be [] if no recent commits were found.
+ *   mostActiveRepos: ActiveRepo[]   [UPGRADED]
+ *     — Array of { name, commitCount, url, qualityScore?, qualityLabel? }.
+ *       Pre-sorted by commitCount desc. Length ≤ 6. May be [] if no recent commits.
+ *       qualityScore (0–100) and qualityLabel are present on the top 3 repos only.
+ *       Always guard with a null/undefined check before using qualityScore/qualityLabel.
+ *       Use qualityScore alongside commitCount for a richer picture:
+ *         "50 commits, score 82" > "100 commits, score 31"
  *
  *   externalPRsMerged: number
  *     — Count of merged PRs in repos the user doesn't own. May be 0.
@@ -74,6 +80,39 @@
  *   workingStyle: WorkingStyle
  *     — { explorationScore (0–100), breadthScore (0–100), summary (string) }
  *       Scores are arithmetic. summary is AI-written but has a guaranteed fallback.
+ *
+ *   commitQuality: CommitQualityAnalysis | null   [NEW]
+ *     — May be null if the quality analysis failed entirely. Always check before rendering.
+ *
+ *     commitQuality.qualityByRepo
+ *       Array of per-repo quality breakdowns. Max 3 items. Sorted by compositeScore desc.
+ *       Only includes repos where the user has 3+ commits. May be [].
+ *       Each repo has: repoName, sampleSize, messageQuality, atomicity, fixRatio,
+ *         testCoverage, conventionalCommits, compositeScore, compositeLabel,
+ *         messageCategories (feat/fix/docs/refactor/test/chore/other percentages),
+ *         aiObservation (string | null).
+ *
+ *     commitQuality.overall
+ *       Aggregate scores across all analyzed repos (weighted by commit count).
+ *       Use overall.compositeScore (0–100) for the headline quality number.
+ *       Use overall.compositeLabel ("Excellent"|"Good"|"Average"|"Needs improvement"|"Poor")
+ *       for the badge or tag text.
+ *       Fields: compositeScore, compositeLabel, messageQualityScore, atomicityScore,
+ *         fixRatioScore, testCoverageScore, consistencyScore, conventionalCommitsScore.
+ *
+ *     commitQuality.overallSummary
+ *       AI-written 2–3 sentence summary. May be null — render dimension scores without
+ *       it if null. Do not show an empty block or placeholder.
+ *
+ *     commitQuality.consistencyScoreNote
+ *       Non-null string if consistency could not be computed (e.g. no calendar data).
+ *       Null means consistency was computed normally.
+ *
+ *     commitQuality.reposAnalyzed
+ *       List of repo names that were sampled. Show to the user so they know the basis.
+ *
+ *     commitQuality.totalCommitsSampled
+ *       Total full-detail commits examined across all repos.
  *
  *   generatedAt: string
  *     — ISO 8601 timestamp. Parse with new Date(generatedAt).
