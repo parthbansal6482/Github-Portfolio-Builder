@@ -12,6 +12,19 @@ export interface PinnedRepo {
   topics: string[];
 }
 
+export interface ContributionDay {
+  date: string; // YYYY-MM-DD
+  contributionCount: number;
+}
+
+export interface ContributionCalendar {
+  total: number;
+  weeks: {
+    contributionDays: ContributionDay[];
+  }[];
+}
+
+
 export interface Repo {
   name: string;
   description: string | null;
@@ -42,6 +55,7 @@ export interface GitHubData {
   topLanguages: string[]; // recency-weighted, max 6
   contributions: {
     totalLastYear: number;
+    calendar: ContributionCalendar;
   };
 }
 

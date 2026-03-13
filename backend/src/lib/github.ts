@@ -115,6 +115,12 @@ query($username: String!) {
     contributionsCollection {
       contributionCalendar {
         totalContributions
+        weeks {
+          contributionDays {
+            date
+            contributionCount
+          }
+        }
       }
     }
   }
@@ -143,6 +149,12 @@ interface GraphQLResponse {
       contributionsCollection: {
         contributionCalendar: {
           totalContributions: number;
+          weeks: Array<{
+            contributionDays: Array<{
+              date: string;
+              contributionCount: number;
+            }>;
+          }>;
         };
       };
     };
@@ -156,6 +168,12 @@ async function fetchGraphQLData(
 ): Promise<{
   pinnedRepos: PinnedRepo[];
   totalContributions: number;
+  calendar: {
+    total: number;
+    weeks: Array<{
+      contributionDays: Array<{ date: string; contributionCount: number }>;
+    }>;
+  };
 } | null> {
   const response = await fetch('https://api.github.com/graphql', {
     method: 'POST',
@@ -193,10 +211,13 @@ async function fetchGraphQLData(
     topics: node.repositoryTopics.nodes.map((t) => t.topic.name),
   }));
 
-  const totalContributions =
-    user.contributionsCollection.contributionCalendar.totalContributions;
+  const totalContributions = user.contributionsCollection.contributionCalendar.totalContributions;
+  const calendar = {
+    total: totalContributions,
+    weeks: user.contributionsCollection.contributionCalendar.weeks,
+  };
 
-  return { pinnedRepos, totalContributions };
+  return { pinnedRepos, totalContributions, calendar };
 }
 
 // ============================================
@@ -311,8 +332,9 @@ export async function fetchGitHubData(
     // Compute recency-weighted top languages
     const topLanguages = computeTopLanguages(repos);
 
-    // Contributions from GraphQL, or 0 if unavailable
+    // Contributions from GraphQL, or 0/empty if unavailable
     const totalLastYear = graphqlResult?.totalContributions || 0;
+    const calendar = graphqlResult?.calendar || { total: 0, weeks: [] };
 
     const githubData: GitHubData = {
       profile: {
@@ -330,6 +352,7 @@ export async function fetchGitHubData(
       topLanguages,
       contributions: {
         totalLastYear,
+        calendar,
       },
     };
 
@@ -934,14 +957,13 @@ export async function fetchEnrichedGitHubData(
   // ---------------------------------------------------------------
   const TOP_REPOS_FOR_QUALITY = 3;
   const reposToAnalyse = mostActiveRepos.slice(0, TOP_REPOS_FOR_QUALITY);
-
-  // Consistency scoring uses the contribution calendar.
-  // GitHubData only has totalLastYear (no daily breakdown), so we pass an empty
-  // calendar here. The consistency dimension will return score=0 with a note
-  // explaining the calendar is unavailable. A future enhancement could fetch
-  // the daily calendar via GraphQL and add it to GitHubData.
-  const calendar: Array<{ date: string; commitCount: number }> = [];
-
+  const calendar: Array<{ date: string; commitCount: number }> =
+    githubData.contributions.calendar?.weeks.flatMap((w) =>
+      w.contributionDays.map((d) => ({
+        date: d.date,
+        commitCount: d.contributionCount,
+      }))
+    ) || [];
   // Run per-repo quality analysis in parallel — individual failures return null
   let commitQuality: EnrichedGitHubData['commitQuality'] = null;
   try {

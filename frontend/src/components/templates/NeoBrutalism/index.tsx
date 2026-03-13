@@ -8,6 +8,7 @@ import ProjectsSection from './ProjectsSection';
 import FooterSection from './FooterSection';
 import InsightsSection from '../InsightsSection';
 import type { InsightTheme } from '../InsightsSection/theme';
+import ContributionHeatmap from '../../ContributionHeatmap';
 
 export default function NeoBrutalismTemplate({ portfolio, username }: TemplateProps) {
     const { githubData, preferences, generatedCopy } = portfolio;
@@ -49,6 +50,20 @@ export default function NeoBrutalismTemplate({ portfolio, username }: TemplatePr
             }}>
                 <HeroSection profile={githubData.profile} username={username} copy={copy} accentColor={accentColor} />
                 <AboutSection copy={copy} />
+
+                {githubData.contributions?.calendar && (
+                    <section style={{ padding: '40px', background: '#fff', border: '4px solid #000', boxShadow: '8px 8px 0px 0px rgba(0,0,0,1)' }}>
+                        <h2 style={{ fontSize: '32px', fontWeight: 900, textTransform: 'uppercase', marginBottom: '32px', borderBottom: '4px solid #000', paddingBottom: '16px' }}>
+                            ACTIVITY.LOG
+                        </h2>
+                        <ContributionHeatmap 
+                            calendar={githubData.contributions.calendar} 
+                            accentColor={accentColor} 
+                            theme="light" 
+                        />
+                    </section>
+                )}
+
                 <ProjectsSection pinnedRepos={githubData.pinnedRepos} copy={copy} accentColor={accentColor} />
                 <InsightsSection data={portfolio.enrichedData} theme={insightTheme} sectionTitle="DEV.INSIGHTS" />
                 <FooterSection profile={githubData.profile} username={username} accentColor={accentColor} />

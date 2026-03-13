@@ -6,6 +6,7 @@ import ProjectsSection from './ProjectsSection';
 import FooterSection from './FooterSection';
 import InsightsSection from '../InsightsSection';
 import type { InsightTheme } from '../InsightsSection/theme';
+import ContributionHeatmap from '../../ContributionHeatmap';
 
 export default function GlassmorphismTemplate({ portfolio, username }: TemplateProps) {
     const copy = portfolio.generatedCopy || {
@@ -48,6 +49,19 @@ export default function GlassmorphismTemplate({ portfolio, username }: TemplateP
                     profile={githubData.profile}
                     accentColor={accentColor}
                 />
+
+                {githubData.contributions?.calendar && (
+                    <div className="bg-[#1F2833]/40 backdrop-blur-md border border-white/10 rounded-xl p-8 shadow-2xl">
+                        <div className="flex items-center space-x-2 mb-6 opacity-70">
+                            <span className="font-mono text-xs uppercase tracking-widest" style={{ color: accentColor }}>// Activity Log</span>
+                        </div>
+                        <ContributionHeatmap 
+                            calendar={githubData.contributions.calendar} 
+                            accentColor={accentColor} 
+                            theme="dark" 
+                        />
+                    </div>
+                )}
 
                 {githubData.pinnedRepos && githubData.pinnedRepos.length > 0 && (
                     <ProjectsSection
