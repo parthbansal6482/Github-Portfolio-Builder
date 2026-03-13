@@ -2,8 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { generateCopy, fetchGitHubData, ApiRequestError } from '@/lib/api';
 import type { UserPreferences } from '@/types';
+
+import neoBrutalismPreview from '@/assets/neo-brutalism.png';
+import glassmorphismPreview from '@/assets/glassmorphism.png';
+import retroRpgPreview from '@/assets/retrorpg.png';
 
 type Step = 'template' | 'vibe' | 'color' | 'layout' | 'role' | 'input';
 
@@ -14,28 +19,32 @@ const TEMPLATE_OPTIONS = [
     id: 'default' as const,
     name: 'Default',
     description: 'Clean, minimal portfolio with adaptive dark/light mode and smooth animations.',
-    colors: ['#0f0f23', '#f8fafc', '#6366f1'],
+    previewImage: null,
+    accentColor: '#6366f1',
     emoji: '✨',
   },
   {
     id: 'neo-brutalism' as const,
     name: 'Neo-Brutalism',
     description: 'Bold, unapologetic design with thick borders, loud colors, and raw energy.',
-    colors: ['#fff0f5', '#000000', '#ff90e8'],
+    previewImage: neoBrutalismPreview,
+    accentColor: '#ff90e8',
     emoji: '⚡',
   },
   {
     id: 'glassmorphism' as const,
     name: 'Glassmorphism',
     description: 'Frosted-glass panels over a dark canvas with electric cyan accents and ambient glow.',
-    colors: ['#0B0C10', '#1F2833', '#00E5FF'],
+    previewImage: glassmorphismPreview,
+    accentColor: '#00E5FF',
     emoji: '🔮',
   },
   {
     id: 'retro-rpg' as const,
     name: 'Retro RPG',
     description: 'Quest-inspired parchment layout with pixel accents, levels, and a tavern vibe.',
-    colors: ['#F2F2EB', '#44403c', '#4F6348'],
+    previewImage: retroRpgPreview,
+    accentColor: '#4F6348',
     emoji: '🗡️',
   },
 ];
@@ -150,18 +159,21 @@ export default function OnboardingPage() {
               <h2 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '8px' }}>Choose a Template</h2>
               <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '32px' }}>Pick the visual design for your portfolio. You can always change it later.</p>
 
-              <div style={{ display: 'grid', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 {TEMPLATE_OPTIONS.map((t) => {
                   const isSelected = preferences.templateId === t.id;
                   return (
                     <label
                       key={t.id}
                       style={{
-                        display: 'flex', alignItems: 'center', gap: '16px',
-                        padding: '20px', borderRadius: '14px',
-                        border: isSelected ? '2px solid #6366f1' : '1px solid rgba(255,255,255,0.1)',
-                        background: isSelected ? 'rgba(99, 102, 241, 0.08)' : 'rgba(255,255,255,0.02)',
-                        cursor: 'pointer', transition: 'all 0.2s',
+                        display: 'flex', flexDirection: 'column',
+                        borderRadius: '16px', overflow: 'hidden',
+                        border: isSelected ? `2.5px solid ${t.accentColor}` : '1.5px solid rgba(255,255,255,0.1)',
+                        background: 'rgba(255,255,255,0.03)',
+                        cursor: 'pointer',
+                        transition: 'all 0.22s ease',
+                        boxShadow: isSelected ? `0 0 18px 2px ${t.accentColor}44` : 'none',
+                        position: 'relative',
                       }}
                     >
                       <input
@@ -172,31 +184,64 @@ export default function OnboardingPage() {
                         onChange={() => updatePreference('templateId', t.id)}
                         style={{ display: 'none' }}
                       />
-                      {/* Color swatch */}
+
+                      {/* Preview image / placeholder */}
                       <div style={{
-                        width: '56px', height: '56px', borderRadius: '12px', flexShrink: 0,
-                        background: `linear-gradient(135deg, ${t.colors[0]} 0%, ${t.colors[1]} 50%, ${t.colors[2]} 100%)`,
-                        border: '1px solid rgba(255,255,255,0.15)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '24px',
+                        position: 'relative', width: '100%', paddingBottom: '60%',
+                        background: '#1a1a2e', overflow: 'hidden', flexShrink: 0,
                       }}>
-                        {t.emoji}
+                        {t.previewImage ? (
+                          <Image
+                            src={t.previewImage}
+                            alt={`${t.name} preview`}
+                            fill
+                            sizes="(max-width: 600px) 50vw, 280px"
+                            style={{ objectFit: 'cover', objectPosition: 'top' }}
+                          />
+                        ) : (
+                          /* Default template placeholder */
+                          <div style={{
+                            position: 'absolute', inset: 0,
+                            background: 'linear-gradient(135deg, #0f0f23 0%, #1e1e3f 50%, #6366f1 100%)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '40px',
+                          }}>
+                            {t.emoji}
+                          </div>
+                        )}
+
+                        {/* Selected checkmark overlay */}
+                        {isSelected && (
+                          <div style={{
+                            position: 'absolute', top: '10px', right: '10px',
+                            width: '26px', height: '26px', borderRadius: '50%',
+                            background: t.accentColor,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                          }}>
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                              <path d="M3 7l3 3 5-5" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </div>
+                        )}
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: '16px', marginBottom: '4px' }}>{t.name}</div>
-                        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>{t.description}</div>
-                      </div>
-                      {isSelected && (
+
+                      {/* Card body */}
+                      <div style={{ padding: '14px 16px 16px' }}>
                         <div style={{
-                          width: '24px', height: '24px', borderRadius: '50%',
-                          background: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0,
+                          display: 'flex', alignItems: 'center', gap: '8px',
+                          marginBottom: '6px',
                         }}>
-                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                            <path d="M3 7l3 3 5-5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
+                          <span style={{ fontSize: '16px' }}>{t.emoji}</span>
+                          <span style={{ fontWeight: 700, fontSize: '15px', letterSpacing: '-0.01em' }}>{t.name}</span>
                         </div>
-                      )}
+                        <p style={{
+                          fontSize: '12px', color: 'rgba(255,255,255,0.48)',
+                          lineHeight: 1.5, margin: 0,
+                        }}>
+                          {t.description}
+                        </p>
+                      </div>
                     </label>
                   );
                 })}
