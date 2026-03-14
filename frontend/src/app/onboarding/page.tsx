@@ -232,7 +232,6 @@ export default function OnboardingPage() {
                           display: 'flex', alignItems: 'center', gap: '8px',
                           marginBottom: '6px',
                         }}>
-                          <span style={{ fontSize: '16px' }}>{t.emoji}</span>
                           <span style={{ fontWeight: 700, fontSize: '15px', letterSpacing: '-0.01em' }}>{t.name}</span>
                         </div>
                         <p style={{

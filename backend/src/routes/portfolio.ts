@@ -14,8 +14,8 @@ router.get('/:username', async (req: Request, res: Response) => {
     // We need to find the user id from the profiles table, then get the portfolio
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id, username')
-      .eq('username', username)
+      .select('id, github_username')
+      .eq('github_username', username)
       .single();
 
     if (profileError || !profile) {
