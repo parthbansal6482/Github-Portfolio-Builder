@@ -89,7 +89,7 @@ export default function DashboardPage() {
 
   const username = session?.user?.githubUsername || 'your-username';
   // Note: in a real environment with custom domain, this would be different
-  const publicUrl = `http://localhost:3000/portfolio/${username}`; 
+  const publicUrl = `https://gittfolio.vercel.app/portfolio/${username}`; 
 
   const totalStarCount = portfolio.githubData.allRepos.reduce((acc, repo) => acc + (repo.stargazerCount || 0), 0);
 
