@@ -14,7 +14,6 @@ import { getSession } from 'next-auth/react';
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-
 // ============================================
 // Internal helpers
 // ============================================

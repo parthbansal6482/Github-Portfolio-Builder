@@ -5,18 +5,18 @@ import Link from 'next/link';
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col bg-[#0f0f23] text-white font-sans selection:bg-indigo-500/30">
+    <div className="flex min-h-screen flex-col bg-black text-white font-sans selection:bg-white/30">
       
       {/* Background Effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-600/20 blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-600/10 blur-[120px]" />
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-white/5 blur-[120px]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-white/5 blur-[120px]" />
       </div>
 
       {/* Header */}
-      <header className="relative z-10 flex items-center justify-between p-6 md:px-12 border-b border-white/5 bg-[#0f0f23]/80 backdrop-blur-xl">
+      <header className="relative z-10 flex items-center justify-between p-6 md:px-12 border-b border-white/10 bg-black/80 backdrop-blur-xl">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-lg">
+          <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center font-bold text-lg text-black">
             G
           </div>
           <span className="text-xl font-bold tracking-tight">GitFolio</span>
@@ -38,14 +38,14 @@ export default function Home() {
         
         <div className="max-w-4xl mx-auto flex flex-col items-center">
           
-          <div className="mb-6 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-sm font-medium">
-            <span className="flex h-2 w-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
+          <div className="mb-6 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/80 text-sm font-medium">
+            <span className="flex h-2 w-2 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
             V1.0 is now live
           </div>
 
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-8 leading-[1.1]">
             Turn your GitHub into a <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-400 to-zinc-600">
               stunning portfolio
             </span>
             <br className="hidden md:block" /> in seconds.
@@ -82,7 +82,7 @@ export default function Home() {
               <div className="w-3 h-3 rounded-full bg-green-500/80" />
             </div>
             
-            <div className="mt-10 h-full w-full rounded-lg border border-white/10 bg-[#0a0a1a] shadow-2xl relative overflow-hidden flex">
+            <div className="mt-10 h-full w-full rounded-lg border border-white/10 bg-zinc-950 shadow-2xl relative overflow-hidden flex">
                {/* Mock UI Sidebar */}
                <div className="w-64 border-r border-white/10 p-6 flex flex-col gap-4">
                  <div className="h-12 w-12 rounded-full bg-white/10 mb-2" />
@@ -100,14 +100,14 @@ export default function Home() {
                  <div className="h-8 w-48 bg-white/20 rounded mb-8" />
                  <div className="grid grid-cols-2 gap-6">
                     <div className="h-32 rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col justify-between">
-                      <div className="h-4 w-24 bg-indigo-500/50 rounded" />
+                      <div className="h-4 w-24 bg-white/20 rounded" />
                       <div className="space-y-2">
                         <div className="h-2 w-full bg-white/10 rounded" />
                         <div className="h-2 w-2/3 bg-white/10 rounded" />
                       </div>
                     </div>
                     <div className="h-32 rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col justify-between">
-                      <div className="h-4 w-32 bg-purple-500/50 rounded" />
+                      <div className="h-4 w-32 bg-white/20 rounded" />
                       <div className="space-y-2">
                         <div className="h-2 w-full bg-white/10 rounded" />
                         <div className="h-2 w-3/4 bg-white/10 rounded" />
@@ -117,11 +117,11 @@ export default function Home() {
                </div>
                
                {/* Glow effect on the mock UI */}
-               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-500/20 blur-[80px] rounded-full pointer-events-none" />
+               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 blur-[80px] rounded-full pointer-events-none" />
             </div>
             
             {/* Fade out bottom */}
-            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#0f0f23] to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
         </div>
 
       </main>
