@@ -50,7 +50,7 @@ async function apiRequest<T>(
 ): Promise<T> {
   const headers = await getAuthHeaders();
 
-  const response = await fetch(`${BACKEND_URL}${path}`, {
+  const response = await fetch(new URL(path, BACKEND_URL).toString(), {
     ...options,
     headers: {
       ...headers,
