@@ -12,14 +12,8 @@ import type {
 } from '@/types';
 import { getSession } from 'next-auth/react';
 
-const _rawBackendUrl =
-  process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-// Ensure the base URL is always absolute so new URL() never throws
 const BACKEND_URL =
-  _rawBackendUrl.startsWith('http://') || _rawBackendUrl.startsWith('https://')
-    ? _rawBackendUrl
-    : `http://${_rawBackendUrl}`;
-
+  process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
 // ============================================
 // Internal helpers
 // ============================================
